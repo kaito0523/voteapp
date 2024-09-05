@@ -1,0 +1,42 @@
+services:
+  voteapp-nginx:
+    container_name: "voteapp-nginx"
+    build:
+      context: ./docker/nginx
+    depends_on:
+      - voteapp-app
+    ports:
+      - 80:80
+    volumes:
+      - ./:/src
+
+  voteapp-app:
+    container_name: "voteapp-app"
+    build:
+      context: ./docker/php
+    depends_on:
+      - voteapp-mysql
+    volumes:
+      - ./:/src
+      - /src/node_modules
+      - /src/vendor
+      - ./docker/php/php.ini:/usr/local/etc/php/php.ini
+  
+  voteapp-mysql:
+    image: mysql:8.0.37
+    command: --max_allowed_packet=32505856
+    container_name: "voteapp-mysql"
+    volumes:
+      - ./docker/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=voteapp
+    ports:
+      - 3306:3306
+  
+  voteapp-redis:
+    image: redis:alpine
+    container_name: "voteapp-redis"
+    ports:
+      - 16379:6379
+
