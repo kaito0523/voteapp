@@ -8,7 +8,7 @@
     href="https://fonts.googleapis.com/css2?display=swap&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900&amp;family=Plus+Jakarta+Sans%3Awght%40400%3B500%3B700%3B800"
     />
 
-    <title>Galileo Design</title>
+    <title>Survey</title>
     <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64," />
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -18,7 +18,7 @@
     <div class="layout-container flex h-full grow flex-col">
         <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#ddf4f2] px-10 py-5">
         <div class="flex items-center gap-4 text-[#0a1f1d]">
-            <h2 class="text-[#0a1f1d] text-lg font-bold leading-tight tracking-[-0.015em]" style="font-size: 1.8rem;">Vote</h2>
+            <h2 class="text-[#0a1f1d] text-lg font-bold leading-tight tracking-[-0.015em]" style="font-size: 1.8rem;">Survey</h2>
         </div>
         <div class="flex gap-2">
             <button
