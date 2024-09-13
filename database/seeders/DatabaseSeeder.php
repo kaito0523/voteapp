@@ -8,6 +8,7 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+<<<<<<< HEAD
     /**
      * Seed the application's database.
      */
@@ -19,5 +20,13 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+=======
+    public function run()
+    {
+        $this->call(UsersTableSeeder::class);
+        $this->call(TopicsTableSeeder::class);
+        $this->call(OptionsTableSeeder::class);
+        $this->call(VotesTableSeeder::class);
+>>>>>>> origin/develop
     }
 }
