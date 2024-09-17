@@ -20,31 +20,19 @@
         <div class="flex items-center gap-4 text-[#0a1f1d]">
             <h2 class="text-[#0a1f1d] text-lg font-bold leading-tight tracking-[-0.015em]" style="font-size: 1.8rem;">Survey</h2>
         </div>
-
-        <!-- ログイン後の状態 -->
         <div class="flex gap-2">
-            <!-- New Topicボタン -->
-            <a href="{{ route('posts.create') }}">
-                <button
-                    class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-11 px-6 bg-[#15e6d5] text-[#0a1f1d] text-sm font-bold leading-normal tracking-[0.015em]"
-                >
-                    <span class="truncate">New Topic</span>
-                </button>
-            </a>
-
-            <!-- ログアウトボタン -->
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button
-                    type="submit"
-                    class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-11 px-6 bg-[#DFEBE9] text-[#0a1f1d] text-sm font-bold leading-normal tracking-[0.015em]"
-                >
-                    <span class="truncate">Logout</span>
-                </button>
-            </form>
+            <button
+            class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-11 px-6 bg-[#15e6d5] text-[#0a1f1d] text-sm font-bold leading-normal tracking-[0.015em]"
+            >
+            <span class="truncate">Sign up</span>
+            </button>
+            <button
+            class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-11 px-6 bg-[#DFEBE9] text-[#0a1f1d] text-sm font-bold leading-normal tracking-[0.015em]"
+            >
+            <span class="truncate">Login</span>
+            </button>
         </div>
         </header>
-
         <main>
             @yield('content')
         </main>
@@ -55,5 +43,6 @@
     </div>
     </div>
 
+    
 </body>
 </html>

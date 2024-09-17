@@ -1,9 +1,5 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-<<<<<<< HEAD
-=======
-import vue from '@vitejs/plugin-vue';
->>>>>>> origin/develop
 
 export default defineConfig({
     plugins: [
@@ -14,22 +10,5 @@ export default defineConfig({
             ],
             refresh: true,
         }),
-<<<<<<< HEAD
     ],
-=======
-        vue({
-            template: {
-                transformAssetUrls: {
-                    base: null,
-                    includeAbsolute: false,
-                },
-            },
-        }),
-    ],
-    resolve: {
-        alias: {
-            vue: 'vue/dist/vue.esm-bundler.js',
-        },
-    },
->>>>>>> origin/develop
 });
