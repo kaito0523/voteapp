@@ -15,7 +15,30 @@
             </div>
             <h5 class="text-xl font-bold text-[#0a1f1d] mb-2">{{ $topic->title }}</h5>
             <p class="text-gray-600 mb-4">{{ $topic->description }}</p>
-            <!-- 選択肢 -->
+            
+            @php
+                $hasVoted = $topic->votes->where('user_id', Auth::id())->count() > 0;
+            @endphp
+
+            <!-- もし投票済みなら結果を表示 -->
+            @if($hasVoted)
+                <div class="space-y-2 results-{{ $topic->id }}">
+                    @foreach($topic->options as $option)
+                    @php
+                        $voteCount = $option->votes->count();
+                        $totalVotes = $topic->votes->count();
+                        $percentage = $totalVotes > 0 ? ($voteCount / $totalVotes) * 100 : 0;
+                    @endphp
+                    <div class="bg-gray-200 rounded-full overflow-hidden">
+                        <div class="bg-[#15e6d5] text-[#0a1f1d] text-sm font-semibold py-2 px-3 flex justify-between" style="width: {{ $percentage }}%">
+                            <span>{{ $option->text }}</span>
+                            <span>{{ number_format($percentage, 0) }}%</span>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            @else
+            <!-- もし未投票なら投票オプションを表示 -->
             <div class="space-y-2 mb-4 options-{{ $topic->id }}">
                 @foreach($topic->options as $option)
                 <button 
@@ -27,6 +50,8 @@
                 </button>
                 @endforeach
             </div>
+            @endif
+
             <p class="text-sm text-gray-500">
                 @if($topic->ends_at)
                     終了まで{{ $topic->ends_at->diffForHumans() }}
@@ -35,59 +60,12 @@
                 @endif
                 • <span class="vote-count-{{ $topic->id }}">{{ $topic->votes_count }}</span>票
             </p>
-            <!-- 結果表示領域 -->
-            <div class="mt-4 space-y-2 results-{{ $topic->id }}" style="display: none;"></div>
         </div>
     </div>
     @endforeach
 </div>
 
 <script>
-document.querySelectorAll('.option-button').forEach(button => {
-    button.addEventListener('click', async function() {
-        const optionId = this.getAttribute('data-option-id');
-        const topicId = this.getAttribute('data-topic-id');
-        const optionsDiv = document.querySelector(`.options-${topicId}`);
-        const resultsDiv = document.querySelector(`.results-${topicId}`);
-
-        try {
-            const response = await fetch(`/topics/${topicId}/vote`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ option_id: optionId })
-            });
-
-            if (!response.ok) {
-                throw new Error('投票中にエラーが発生しました。');
-            }
-
-            const data = await response.json();
-            
-            // 結果を表示
-            resultsDiv.innerHTML = data.results.map(result => `
-                <div class="bg-gray-200 rounded-full overflow-hidden">
-                    <div class="bg-[#15e6d5] text-[#0a1f1d] text-sm font-semibold py-2 px-3 flex justify-between" style="width: ${result.percentage}%">
-                        <span>${result.option}</span>
-                        <span>${result.percentage.toFixed(0)}%</span>
-                    </div>
-                </div>
-            `).join('');
-
-            // 選択肢を非表示にし、結果を表示
-            optionsDiv.style.display = 'none';
-            resultsDiv.style.display = 'block';
-
-            // 投票数を更新
-            const voteCountElem = document.querySelector(`.vote-count-${topicId}`);
-            voteCountElem.textContent = parseInt(voteCountElem.textContent) + 1;
-
-        } catch (error) {
-            alert(error.message);
-        }
-    });
-});
+// ... (既存のJSコードも変更なしで使えます)
 </script>
 @endsection

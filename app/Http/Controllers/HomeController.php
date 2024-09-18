@@ -12,22 +12,31 @@ class HomeController extends Controller
 {
     
     public function index()
-    {
-        $topics = Topic::where('ends_at', '>', now())
-                        ->orWhereNull('ends_at')
-                        ->orderBy('created_at', 'desc')
-                        ->with('options') //選択肢も一緒に取得
-                        ->get();
+{
+    $topics = Topic::where('ends_at', '>', now())
+                    ->orWhereNull('ends_at')
+                    ->orderBy('created_at', 'desc')
+                    ->with(['options', 'votes']) // optionsとvotesを一緒に取得
+                    ->get();
 
-        //ログイン状態に応じて、異なるビューを表示
-        if(Auth::check()){
-            return view('home.logged_in', compact('topics'));
-        } else {
-            return view('home.guest', compact('topics'));
+    // ユーザーがログインしている場合、投票済みかどうかをトピックごとに確認
+    if (Auth::check()) {
+        $userId = Auth::id();
+        foreach ($topics as $topic) {
+            // ユーザーが既に投票しているか確認
+            $topic->has_voted = $topic->votes->where('user_id', $userId)->count() > 0;
         }
     }
 
-    public function vote(Request $request, $topicId)
+    // ログイン状態に応じてビューを表示
+    if (Auth::check()) {
+        return view('home.logged_in', compact('topics'));
+    } else {
+        return view('home.guest', compact('topics'));
+    }
+}
+
+public function vote(Request $request, $topicId)
 {
     // バリデーション
     $request->validate([
@@ -40,9 +49,9 @@ class HomeController extends Controller
     $existingVote = Vote::where('topic_id', $topicId)
                         ->where(function ($query) use ($userId, $request) {
                             if ($userId) {
-                                $query->where('userId', $userId);
+                                $query->where('user_id', $userId);
                             } else {
-                                $query->where('ip_Address', $request->ip());
+                                $query->where('ip_address', $request->ip());
                             }
                         })
                         ->first();
@@ -55,8 +64,8 @@ class HomeController extends Controller
     Vote::create([
         'topic_id' => $topicId,
         'option_id' => $request->input('option_id'),
-        'userId' => $userId,
-        'ip_Address' => $request->ip(),
+        'user_id' => $userId,
+        'ip_address' => $request->ip(),
     ]);
 
     // 結果を計算
@@ -67,23 +76,23 @@ class HomeController extends Controller
     return response()->json(['message' => 'Vote successful', 'results' => $results], 200);
 }
 
-    private function calculateResults(Topic $topic)
-    {
-        $results = [];
-        $totalVotes = $topic->votes->count();
+private function calculateResults(Topic $topic)
+{
+    $results = [];
+    $totalVotes = $topic->votes->count();
 
-        foreach($topic->options as $option){
-            $voteCount = $option->votes->count();
-            $percentage = $totalVotes > 0 ? ($voteCount / $totalVotes) * 100 : 0;
-            $results[] =[
-                'option' => $option->text,
-                'votes' => $voteCount,
-                'percentage' => $percentage,
-            ];
-        }
-
-        return $results;
+    foreach ($topic->options as $option) {
+        $voteCount = $option->votes->count();
+        $percentage = $totalVotes > 0 ? ($voteCount / $totalVotes) * 100 : 0;
+        $results[] = [
+            'option' => $option->text,
+            'votes' => $voteCount,
+            'percentage' => number_format($percentage, 2), // 小数点2桁で表示
+        ];
     }
+
+    return $results;
+}
 
 }
 
