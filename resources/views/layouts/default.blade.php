@@ -55,7 +55,6 @@
             </main>
         
             <footer>
-                <!-- フッターコンテンツ -->
             </footer>
         </div>
     </div>

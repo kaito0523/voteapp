@@ -14,18 +14,40 @@
                 </div>
             </div>
             <p class="text-gray-600 mb-4">{{ $topic->description }}</p>
-            <!-- 選択肢 -->
-            <div class="space-y-2 mb-4 options-{{ $topic->id }}">
-                @foreach($topic->options as $option)
-                <button
-                    class="w-full text-left px-4 py-2 bg-[#DFEBE9] text-[#0a1f1d] rounded-xl hover:bg-[#15e6d5] transition duration-300 option-button"
-                    data-option-id="{{ $option->id }}"
-                    data-topic-id="{{ $topic->id }}"
-                >
-                    {{ $option->text }}
-                </button>
-                @endforeach
-            </div>
+            
+            <!-- 投票済みかどうかで条件分岐 -->
+            @if($topic->has_voted)
+                <!-- 投票結果を表示 -->
+                <div class="space-y-2 mb-4 results-{{ $topic->id }}">
+                    @foreach($topic->options as $option)
+                        @php
+                            $totalVotes = $topic->votes->count();
+                            $optionVotes = $option->votes->count();
+                            $percentage = $totalVotes > 0 ? ($optionVotes / $totalVotes) * 100 : 0;
+                        @endphp
+                        <div class="bg-gray-200 rounded-full overflow-hidden">
+                            <div class="text-[#0a1f1d] text-sm font-semibold py-2 px-3 flex justify-between items-center w-full" style="background: linear-gradient(to right, #15e6d5 {{ $percentage }}%, transparent {{ $percentage }}%);">
+                                <span class="truncate flex-grow">{{ $option->text }}</span>
+                                <span class="ml-2 flex-shrink-0">{{ number_format($percentage, 0) }}%</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <!-- 投票ボタンを表示 -->
+                <div class="space-y-2 mb-4 options-{{ $topic->id }}">
+                    @foreach($topic->options as $option)
+                    <button
+                        class="w-full text-left px-4 py-2 bg-[#DFEBE9] text-[#0a1f1d] rounded-xl hover:bg-[#15e6d5] transition duration-300 option-button flex justify-between items-center"
+                        data-option-id="{{ $option->id }}"
+                        data-topic-id="{{ $topic->id }}"
+                    >
+                        <span class="truncate flex-grow">{{ $option->text }}</span>
+                    </button>
+                    @endforeach
+                </div>
+            @endif
+
             <p class="text-sm text-gray-500">
                 @if($topic->ends_at)
                     終了まで{{ $topic->ends_at->diffForHumans() }}
@@ -34,6 +56,7 @@
                 @endif
                 • <span class="vote-count-{{ $topic->id }}">{{ $topic->votes_count }}</span>票
             </p>
+
             <!-- 結果表示領域 -->
             <div class="mt-4 space-y-2 results-{{ $topic->id }}" style="display: none;"></div>
         </div>
@@ -68,7 +91,15 @@
                     body: JSON.stringify({ option_id: optionId })
                 });
     
-                const data = await response.json();
+                let data;
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    console.error('Received non-JSON response:', text);
+                    throw new Error('サーバーから予期しない応答がありました。');
+                }
     
                 if (!response.ok) {
                     throw new Error(data.error || '投票中にエラーが発生しました。');
@@ -76,25 +107,24 @@
     
                 // 結果を表示
                 resultsDiv.innerHTML = data.results.map(result => `
-                    <div class="bg-gray-200 rounded-full overflow-hidden">
-                        <div class="bg-[#15e6d5] text-[#0a1f1d] text-sm font-semibold py-2 px-3 flex justify-between" style="width: ${result.percentage}%">
-                            <span>${result.option}</span>
-                            <span>${result.percentage.toFixed(0)}%</span>
-                        </div>
+                <div class="bg-gray-200 rounded-full overflow-hidden mb-2">
+                    <div class="text-[#0a1f1d] text-sm font-semibold py-2 px-3 flex justify-between items-center w-full" style="background: linear-gradient(to right, #15e6d5 ${parseFloat(result.percentage).toFixed(0)}%, transparent ${parseFloat(result.percentage).toFixed(0)}%);">
+                        <span class="truncate flex-grow">${result.option}</span>
+                        <span class="ml-2 flex-shrink-0">${parseFloat(result.percentage).toFixed(0)}%</span>
                     </div>
+                </div>
                 `).join('');
     
                 // 選択肢を非表示にし、結果を表示
                 optionsDiv.style.display = 'none';
                 resultsDiv.style.display = 'block';
     
-                // 投票数を更新
                 const voteCountElem = document.querySelector(`.vote-count-${topicId}`);
                 voteCountElem.textContent = parseInt(voteCountElem.textContent) + 1;
     
             } catch (error) {
                 console.error('Error:', error);
-                alert(error.message); // ユーザーにエラーを表示
+                alert(error.message); 
             }
         });
     });

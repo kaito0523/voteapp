@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use DB;
 use App\Models\Vote;
 use App\Models\Topic;
 use App\Models\Option;
@@ -16,15 +17,22 @@ class HomeController extends Controller
     $topics = Topic::where('ends_at', '>', now())
                     ->orWhereNull('ends_at')
                     ->orderBy('created_at', 'desc')
+                    ->withCount('votes')
                     ->with(['options', 'votes']) // optionsとvotesを一緒に取得
                     ->get();
 
-    // ユーザーがログインしている場合、投票済みかどうかをトピックごとに確認
+    // ユーザーがログインしているかどうかで投票済み確認
     if (Auth::check()) {
         $userId = Auth::id();
         foreach ($topics as $topic) {
-            // ユーザーが既に投票しているか確認
+            // ログインユーザーの場合、user_idで投票済みか確認
             $topic->has_voted = $topic->votes->where('user_id', $userId)->count() > 0;
+        }
+    } else {
+        $userIp = request()->ip();
+        foreach ($topics as $topic) {
+            // ゲストユーザーの場合、IPアドレスで投票済みか確認
+            $topic->has_voted = $topic->votes->where('ip_address', $userIp)->count() > 0;
         }
     }
 
@@ -43,37 +51,59 @@ public function vote(Request $request, $topicId)
         'option_id' => 'required|exists:options,id',
     ]);
 
-    $userId = Auth::id() ?? null;
+    $userId = Auth::id();
+    $ipAddress = $request->ip();
 
-    // ユーザーが既に投票しているか確認
-    $existingVote = Vote::where('topic_id', $topicId)
-                        ->where(function ($query) use ($userId, $request) {
-                            if ($userId) {
-                                $query->where('user_id', $userId);
-                            } else {
-                                $query->where('ip_address', $request->ip());
-                            }
-                        })
-                        ->first();
+    DB::beginTransaction();
+    try {
+        // トピックが存在し、まだ終了していないか確認
+        $topic = Topic::where('id', $topicId)
+            ->where(function ($query) {
+                $query->where('ends_at', '>', now())
+                    ->orWhereNull('ends_at');
+            })
+            ->lockForUpdate()
+            ->first();
 
-    if ($existingVote) {
-        return response()->json(['error' => 'You have already voted on this topic.'], 403);
+        if (!$topic) {
+            DB::rollBack();
+            return response()->json(['error' => 'This topic does not exist or has ended.'], 404);
+        }
+
+        // ユーザーが既に投票しているか確認
+        $existingVote = Vote::where('topic_id', $topicId)
+            ->where(function ($query) use ($userId, $ipAddress) {
+                $query->where('ip_address', $ipAddress)
+                    ->when($userId, function ($query) use ($userId) {
+                        $query->orWhere('user_id', $userId);
+                    });
+            })
+            ->first();
+
+        if ($existingVote) {
+            DB::rollBack();
+            return response()->json(['error' => 'You have already voted on this topic.'], 403);
+        }
+
+        // 投票を保存
+        Vote::create([
+            'topic_id' => $topicId,
+            'option_id' => $request->input('option_id'),
+            'user_id' => $userId,
+            'ip_address' => $ipAddress,
+        ]);
+
+        DB::commit();
+
+        // 結果を計算
+        $topic = Topic::with('options.votes')->find($topicId);
+        $results = $this->calculateResults($topic);
+
+        return response()->json(['message' => 'Vote successful', 'results' => $results], 200);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['error' => 'An error occurred while processing your vote.'], 500);
     }
-
-    // 投票を保存
-    Vote::create([
-        'topic_id' => $topicId,
-        'option_id' => $request->input('option_id'),
-        'user_id' => $userId,
-        'ip_address' => $request->ip(),
-    ]);
-
-    // 結果を計算
-    $topic = Topic::with('options.votes')->find($topicId);
-    $results = $this->calculateResults($topic);
-
-    // 投票成功と結果を返す
-    return response()->json(['message' => 'Vote successful', 'results' => $results], 200);
 }
 
 private function calculateResults(Topic $topic)
